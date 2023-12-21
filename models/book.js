@@ -8,7 +8,6 @@ const bookSchema = mongoose.Schema(
     publisher: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Publisher",
-      required: true,
     },
   },
   { timestamps: true }

@@ -9,6 +9,7 @@ import { Publisher } from "./models/pub.js";
 import request from "express";
 import fetch from "node-fetch";
 import { Book } from "./models/book.js";
+import { Dev } from "./models/dev.js";
 
 const app = express();
 
@@ -27,10 +28,52 @@ app.get("/fetchdata", async (req, res) => {
   res.json({ data: mydata });
 });
 
+app.get("/del/:id", async (req, res) => {
+  const { id } = req.params;
+  const mydata = await mod1model.aggregate([{ $skip: Number(id) }]);
+  res.json({ data: mydata });
+});
+app.delete("/del/:id", async (req, res) => {
+  const { id } = req.params;
+  const mydata = await mod1model.findByIdAndDelete(id);
+  res.json({ data: mydata });
+});
+
+app.get("/testapi", async (req, res) => {
+  const mydata = await mod1model.aggregate([
+    { $skip: 0 },
+    { $match: { name: "anoop kumar chaudhary" } },
+  ]);
+  res.json({ data: mydata });
+});
+
+app.post("/devs", async (req, res) => {
+  const val = Dev({
+    name: req.body.name,
+    age: req.body.age,
+    tech: req.body.tech,
+    workExp: req.body.workExp,
+  });
+  await val.save();
+  res.status(201).json({ success: true, data: val });
+});
+app.get("/getdevs", async (req, res) => {
+  const data = await Dev.find({});
+  res.json({ data: data });
+});
+
 app.post("/addPublisher", async (req, res) => {
   const publisher = new Publisher(req.body);
   await publisher.save();
   res.status(201).json({ success: true, data: publisher });
+});
+app.post("/addBook", async (req, res) => {
+  const book = new Book(req.body);
+  await book.save();
+  // const publisher = await Publisher.findById({ _id: book.publisher });
+  // publisher.publishedBooks.push(book);
+  // await publisher.save();
+  res.status(201).json({ success: true, data: book });
 });
 
 app.post("/mydata", async (req, res) => {
@@ -64,13 +107,9 @@ app.post("/mydata", async (req, res) => {
 const data = { name: "anoop", edu: "vit" };
 
 app.get("/json", cont2);
-mongoose
-  .connect(
-    "mongodb+srv://anoop:anoop123@db1.ohpfv6l.mongodb.net/databases?retryWrites=true&w=majority"
-  )
-  .then(() => {
-    console.log("connected to database");
-    app.listen(process.env.PORT, () => {
-      console.log("listening on 3000");
-    });
+mongoose.connect(process.env.MONGODB_URI).then(() => {
+  console.log("connected to database");
+  app.listen(process.env.PORT, () => {
+    console.log("listening on 3000");
   });
+});
