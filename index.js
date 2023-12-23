@@ -2,6 +2,9 @@ import dotenv from "dotenv";
 dotenv.config();
 import express, { json } from "express";
 import mongoose from "mongoose";
+import path from "path";
+import fs from "fs";
+import multer from "multer";
 import cors from "cors";
 import { cont1, cont2 } from "./controllers/cont.js";
 import { mod1model } from "./models/mod1.js";
@@ -10,13 +13,97 @@ import request from "express";
 import fetch from "node-fetch";
 import { Book } from "./models/book.js";
 import { Dev } from "./models/dev.js";
+import { User } from "./models/user.js";
+import { Car } from "./models/cars.js";
+import { TestModel } from "./models/testingmodel.js";
+import { TestModel1 } from "./models/testmodel2.js";
+import { PipelineModel } from "./models/pipelineModel.js";
+import { ImageModel } from "./models/images.js";
 
 const app = express();
 
 app.use(express.json());
 app.use(cors());
+app.use(express.urlencoded({ extended: true }));
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "./public");
+  },
+  filename(req, file, cb) {
+    cb(null, file.originalname);
+  },
+});
+
+const upload = multer({ storage: storage });
 
 app.get("/", cont1);
+
+app.use("/images", express.static("public"));
+
+app.post("/profile", upload.single("avatar"), function (req, res, next) {
+  const data = ImageModel({ imageName: req.file.filename });
+  data.save();
+  res.json({ data: req.file });
+});
+
+app.get("/imges", (req, res) => {
+  res.json({ data: "./public" });
+});
+
+app.post("/posttest", (req, res) => {
+  const data = TestModel(req.body);
+  data.save();
+  res.json({ mydata: data });
+});
+app.get("/test1", async (req, res) => {
+  const user = await TestModel1.findById("6586810a9fd747ade549efac");
+  const updated = user.updateName("chaudhary");
+  user.save();
+  console.log(updated);
+  res.json({ data: user });
+});
+app.post("/posttest1", (req, res) => {
+  const data = TestModel1(req.body);
+  data.save();
+  res.json({ mydata: data });
+});
+app.get("/gettestdata", (req, res) => {
+  const data = TestModel.find({});
+  res.json({ data: data });
+});
+
+app.post("/postusers", async (req, res) => {
+  const usersdata = await User(req.body);
+  await usersdata.save();
+  res.json({ data: usersdata });
+});
+
+app.post("/postcars", async (req, res) => {
+  const cardata = await Car(req.body);
+  await cardata.save();
+  res.json({ data: cardata });
+});
+
+// app.post("/addcars" , (req , res)=>{
+//    const car = new Car(req.body)
+// })
+
+app.post("/addcars/:id", async (req, res) => {
+  const { id } = req.params;
+  const userdata = await User.findById(id);
+  const cardata = await Car(req.body);
+  userdata.cars.push(cardata);
+  await cardata.save();
+  await userdata.save();
+  res.json({ data: userdata.cars });
+});
+
+app.get("/popmethod/:id/:index", async (req, res) => {
+  const { id, index } = req.params;
+  const data = await User.findById(id).populate("cars");
+  const data2 = data.cars;
+  res.json({ data: data });
+});
 
 app.post("/data", async (req, res) => {
   const val = { name: req.body.name };
@@ -70,9 +157,6 @@ app.post("/addPublisher", async (req, res) => {
 app.post("/addBook", async (req, res) => {
   const book = new Book(req.body);
   await book.save();
-  // const publisher = await Publisher.findById({ _id: book.publisher });
-  // publisher.publishedBooks.push(book);
-  // await publisher.save();
   res.status(201).json({ success: true, data: book });
 });
 
@@ -105,6 +189,29 @@ app.post("/mydata", async (req, res) => {
 });
 
 const data = { name: "anoop", edu: "vit" };
+
+app.post("/postPipeline", async (req, res, next) => {
+  const data = await PipelineModel(req.body);
+  await data.save();
+  console.log(req.file);
+  res.json({ data: data });
+});
+app.get("/pipelineData", async (req, res) => {
+  const data = await PipelineModel.aggregate([
+    { $skip: 0 },
+    {
+      $match: {
+        age: { $gte: 25 },
+        $or: [
+          { firstName: "anoop" },
+          { firstName: "anoop1" },
+          { firstName: "anoop2" },
+        ],
+      },
+    },
+  ]);
+  res.json({ data: data });
+});
 
 app.get("/json", cont2);
 mongoose.connect(process.env.MONGODB_URI).then(() => {

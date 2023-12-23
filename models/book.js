@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { TestModel } from "./testingmodel.js";
 
 const bookSchema = mongoose.Schema(
   {
@@ -12,5 +13,12 @@ const bookSchema = mongoose.Schema(
   },
   { timestamps: true }
 );
+
+// bookSchema.pre("validate", async function () {
+//   const data = TestModel({ name: "anoop" });
+//   await data.save();
+//   console.log("executed");
+//   console.log(this._id, this.name, this.publishYear, this.author);
+// });
 
 export const Book = mongoose.model("Book", bookSchema);
