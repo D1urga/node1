@@ -19,6 +19,7 @@ import { TestModel } from "./models/testingmodel.js";
 import { TestModel1 } from "./models/testmodel2.js";
 import { PipelineModel } from "./models/pipelineModel.js";
 import { ImageModel } from "./models/images.js";
+import { Subscription } from "./models/subs.js";
 
 const app = express();
 
@@ -107,8 +108,8 @@ app.get("/popmethod/:id/:index", async (req, res) => {
 
 app.post("/data", async (req, res) => {
   const val = { name: req.body.name };
-  const created = await mod1model.create(val);
-  res.send(created);
+  val.save();
+  res.json({ data: val });
 });
 app.get("/fetchdata", async (req, res) => {
   const mydata = await mod1model.find({});
@@ -195,6 +196,37 @@ app.post("/postPipeline", async (req, res, next) => {
   await data.save();
   console.log(req.file);
   res.json({ data: data });
+});
+app.post("/postSubs", async (req, res) => {
+  const data = await Subscription(req.body);
+  data.save();
+  res.json({ data: data });
+});
+
+app.get("/getsub", async (req, res) => {
+  const data = await Subscription.find({});
+  res.json({ data: data });
+});
+app.get("/getchannels/:id", async (req, res) => {
+  const { id } = req.params;
+  const user = await PipelineModel.aggregate([
+    {
+      $match: {
+        $expr: { $eq: ["$_id", { $toObjectId: id }] },
+      },
+    },
+
+    { $skip: 0 },
+    {
+      $lookup: {
+        from: "subscriptions",
+        localField: "_id",
+        foreignField: "subscriber",
+        as: "my channels",
+      },
+    },
+  ]);
+  res.json({ data: user });
 });
 app.get("/pipelineData", async (req, res) => {
   const data = await PipelineModel.aggregate([
